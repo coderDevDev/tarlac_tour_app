@@ -41,10 +41,10 @@ export default function BottomNavigation() {
       active: pathname === "/sites" || pathname.startsWith("/sites/"),
     },
     {
-      href: "/governors",
-      label: "Governors",
-      icon: Users,
-      active: pathname === "/governors" || pathname.startsWith("/governors/"),
+      href: "/map",
+      label: "Map",
+      icon: Map,
+      active: pathname === "/map",
     },
     {
       href: "/ar-camera",
@@ -53,10 +53,10 @@ export default function BottomNavigation() {
       active: pathname === "/ar-camera",
     },
     {
-      href: "/map",
-      label: "Map",
-      icon: Map,
-      active: pathname === "/map",
+      href: "/governors",
+      label: "Governors",
+      icon: Users,
+      active: pathname === "/governors" || pathname.startsWith("/governors/"),
     },
   ]
 

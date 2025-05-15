@@ -4,13 +4,12 @@ import type React from "react"
 
 import { useState, useEffect, useRef } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
-import { Camera, X, Upload, RefreshCw, AlertTriangle } from "lucide-react"
+import { Camera, X, Upload, RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { getSiteById, getAllSiteIds } from "@/lib/data"
 import ARViewer from "@/components/ar-viewer"
 import { motion, AnimatePresence } from "framer-motion"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 export default function ARCameraPage() {
   const router = useRouter()
@@ -25,7 +24,6 @@ export default function ARCameraPage() {
   const videoRef = useRef<HTMLVideoElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const streamRef = useRef<MediaStream | null>(null)
-  const [activeTab, setActiveTab] = useState<string>("scan")
 
   const site = siteId ? getSiteById(siteId) : null
   const validSiteIds = getAllSiteIds()
@@ -62,12 +60,6 @@ export default function ARCameraPage() {
     if (cameraPermission === "granted" && cameraActive && !streamRef.current) {
       console.log("Permission granted, starting camera")
       startCamera()
-    }
-
-    // If permission was denied, switch to upload tab
-    if (cameraPermission === "denied") {
-      setActiveTab("upload")
-      setCameraActive(false)
     }
   }, [cameraPermission, cameraActive])
 
@@ -147,7 +139,7 @@ export default function ARCameraPage() {
 
       if (err.name === "NotAllowedError" || err.name === "PermissionDeniedError") {
         setCameraPermission("denied")
-        setError("Camera permission denied. Please enable camera access in your browser settings.")
+        setError("Camera permission denied. Please allow camera access in your browser settings and try again.")
       } else if (err.name === "NotFoundError" || err.name === "DevicesNotFoundError") {
         setError("No camera found on this device.")
       } else {
@@ -368,57 +360,6 @@ export default function ARCameraPage() {
     }
   }
 
-  // Get browser-specific instructions for enabling camera
-  const getBrowserInstructions = () => {
-    const userAgent = navigator.userAgent.toLowerCase()
-
-    if (userAgent.includes("chrome")) {
-      return (
-        <ol className="list-decimal list-inside text-sm space-y-1 mt-2">
-          <li>Click the camera icon in the address bar</li>
-          <li>Select "Always allow" for this site</li>
-          <li>Refresh the page</li>
-        </ol>
-      )
-    } else if (userAgent.includes("firefox")) {
-      return (
-        <ol className="list-decimal list-inside text-sm space-y-1 mt-2">
-          <li>Click the lock icon in the address bar</li>
-          <li>Click "More Information" and then "Permissions"</li>
-          <li>Find "Use the Camera" and select "Allow"</li>
-          <li>Refresh the page</li>
-        </ol>
-      )
-    } else if (userAgent.includes("safari")) {
-      return (
-        <ol className="list-decimal list-inside text-sm space-y-1 mt-2">
-          <li>Open Safari Preferences</li>
-          <li>Go to "Websites" tab and select "Camera"</li>
-          <li>Find this website and select "Allow"</li>
-          <li>Refresh the page</li>
-        </ol>
-      )
-    } else if (userAgent.includes("edg")) {
-      return (
-        <ol className="list-decimal list-inside text-sm space-y-1 mt-2">
-          <li>Click the lock icon in the address bar</li>
-          <li>Click "Site permissions"</li>
-          <li>Set Camera to "Allow"</li>
-          <li>Refresh the page</li>
-        </ol>
-      )
-    } else {
-      return (
-        <ol className="list-decimal list-inside text-sm space-y-1 mt-2">
-          <li>Check your browser settings</li>
-          <li>Look for Camera or Site permissions</li>
-          <li>Allow camera access for this website</li>
-          <li>Refresh the page</li>
-        </ol>
-      )
-    }
-  }
-
   // If a siteId is provided, show the AR viewer for that site
   if (siteId && site) {
     return (
@@ -469,119 +410,53 @@ export default function ARCameraPage() {
                   Scan QR codes at heritage sites to view 3D models and additional information.
                 </CardDescription>
               </CardHeader>
-              {cameraPermission === "denied" ? (
-                <CardContent className="flex flex-col items-center space-y-6">
-                  <div className="w-full bg-amber-50 p-4 rounded-lg flex flex-col items-center">
-                    <AlertTriangle className="h-12 w-12 text-amber-500 mb-2" />
-                    <h3 className="text-lg font-medium text-amber-800">Camera Access Denied</h3>
-                    <p className="text-sm text-amber-700 text-center mt-1">
-                      You need to allow camera access to scan QR codes.
-                    </p>
+              <CardContent className="flex flex-col items-center space-y-6">
+                <div className="w-full aspect-video bg-muted rounded-xl flex items-center justify-center">
+                  <Camera className="h-16 w-16 text-muted-foreground/50" />
+                </div>
 
-                    <div className="mt-4 w-full">
-                      <h4 className="text-sm font-medium text-amber-800">How to enable camera access:</h4>
-                      {getBrowserInstructions()}
-                    </div>
+                <div className="flex flex-col w-full gap-3">
+                  <Button onClick={requestCameraPermission} className="w-full rounded-full" disabled={isLoading}>
+                    <Camera className="mr-2 h-4 w-4" />
+                    Scan QR Code with Camera
+                  </Button>
 
-                    <div className="flex gap-3 mt-4">
-                      <Button
-                        variant="outline"
-                        className="flex items-center gap-2"
-                        onClick={() => window.location.reload()}
-                      >
-                        <RefreshCw className="h-4 w-4" />
-                        Refresh Page
-                      </Button>
+                  <Button
+                    onClick={triggerFileUpload}
+                    variant="outline"
+                    className="w-full rounded-full"
+                    disabled={isLoading}
+                  >
+                    <Upload className="mr-2 h-4 w-4" />
+                    Upload QR Code Image
+                  </Button>
 
-                      <Button className="flex items-center gap-2" onClick={requestCameraPermission}>
-                        <Camera className="h-4 w-4" />
-                        Try Again
-                      </Button>
-                    </div>
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={handleFileUpload}
+                    accept="image/*"
+                    className="hidden"
+                  />
+                </div>
+
+                {isLoading && (
+                  <div className="flex items-center justify-center gap-2 text-sm">
+                    <RefreshCw className="h-4 w-4 animate-spin" />
+                    <span>Processing...</span>
                   </div>
+                )}
 
-                  <div className="w-full border-t pt-4">
-                    <h3 className="text-base font-medium mb-2">Alternative: Upload QR Code</h3>
-                    <p className="text-sm text-muted-foreground mb-3">
-                      You can still use the AR experience by uploading a QR code image.
-                    </p>
-                    <Button onClick={triggerFileUpload} className="w-full" disabled={isLoading}>
-                      <Upload className="mr-2 h-4 w-4" />
-                      Upload QR Code Image
-                    </Button>
-                    <input
-                      type="file"
-                      ref={fileInputRef}
-                      onChange={handleFileUpload}
-                      accept="image/*"
-                      className="hidden"
-                    />
+                {error && (
+                  <div className="text-sm text-red-500 text-center px-4 py-2 bg-red-50 rounded-md w-full">{error}</div>
+                )}
+
+                {cameraPermission === "denied" && (
+                  <div className="text-sm text-amber-600 text-center px-4 py-2 bg-amber-50 rounded-md w-full">
+                    Camera access is blocked. Please update your browser settings to allow camera access.
                   </div>
-                </CardContent>
-              ) : (
-                <CardContent className="flex flex-col items-center space-y-6">
-                  <Tabs defaultValue="scan" value={activeTab} onValueChange={setActiveTab} className="w-full">
-                    <TabsList className="grid w-full grid-cols-2">
-                      <TabsTrigger value="scan">Camera Scan</TabsTrigger>
-                      <TabsTrigger value="upload">Upload Image</TabsTrigger>
-                    </TabsList>
-
-                    <TabsContent value="scan" className="mt-4">
-                      <div className="w-full aspect-video bg-muted rounded-xl flex items-center justify-center">
-                        <Camera className="h-16 w-16 text-muted-foreground/50" />
-                      </div>
-
-                      <Button
-                        onClick={requestCameraPermission}
-                        className="w-full mt-4 rounded-full"
-                        disabled={isLoading}
-                      >
-                        <Camera className="mr-2 h-4 w-4" />
-                        Scan QR Code with Camera
-                      </Button>
-
-                      <p className="text-xs text-muted-foreground mt-2 text-center">
-                        This will request access to your device camera
-                      </p>
-                    </TabsContent>
-
-                    <TabsContent value="upload" className="mt-4">
-                      <div className="w-full aspect-video bg-muted rounded-xl flex flex-col items-center justify-center p-4">
-                        <Upload className="h-12 w-12 text-muted-foreground/50 mb-2" />
-                        <p className="text-sm text-center text-muted-foreground">
-                          Select a QR code image from your device
-                        </p>
-                      </div>
-
-                      <Button onClick={triggerFileUpload} className="w-full mt-4 rounded-full" disabled={isLoading}>
-                        <Upload className="mr-2 h-4 w-4" />
-                        Upload QR Code Image
-                      </Button>
-
-                      <input
-                        type="file"
-                        ref={fileInputRef}
-                        onChange={handleFileUpload}
-                        accept="image/*"
-                        className="hidden"
-                      />
-                    </TabsContent>
-                  </Tabs>
-
-                  {isLoading && (
-                    <div className="flex items-center justify-center gap-2 text-sm">
-                      <RefreshCw className="h-4 w-4 animate-spin" />
-                      <span>Processing...</span>
-                    </div>
-                  )}
-
-                  {error && (
-                    <div className="text-sm text-red-500 text-center px-4 py-2 bg-red-50 rounded-md w-full">
-                      {error}
-                    </div>
-                  )}
-                </CardContent>
-              )}
+                )}
+              </CardContent>
             </Card>
           </motion.div>
         ) : (
@@ -659,3 +534,5 @@ declare global {
     qrScanInterval: NodeJS.Timeout | null
   }
 }
+
+// Update the startQrScanning function to be more reliable:
