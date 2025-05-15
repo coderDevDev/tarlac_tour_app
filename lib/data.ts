@@ -453,3 +453,8 @@ export const getFeaturedSites = () => {
 export const getSiteById = (id: string) => {
   return allHeritageSites.find((site) => site.id === id) || heritageSites.find((site) => site.id === id)
 }
+
+export function getAllSiteIds() {
+  // Return all site IDs from both heritageSites and allHeritageSites
+  return allHeritageSites.map((site) => site.id)
+}
